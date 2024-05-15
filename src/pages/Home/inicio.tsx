@@ -266,7 +266,7 @@ export default function Home() {
             
       </View>
       <Modal
-      //visible={verSacola}
+      visible={verSacola}
       onRequestClose={fecharSacola}
       animationType="slide">
         <ScrollView>
@@ -290,11 +290,17 @@ export default function Home() {
             <Text style={{color:'#0b7402', fontSize:19, marginTop:17}}>R$ 26,90</Text>
           </View> 
           <View style={{flexDirection:'row', backgroundColor:'#d9d9d9', width:90, height:36, borderRadius:15, alignItems:'center', justifyContent:'space-between', paddingHorizontal:6,marginLeft:20, alignSelf:'center', marginRight:10}}>
+          <TouchableOpacity>
             <Image source={require('./img/excluir.png')}/>
+          </TouchableOpacity>
             <Text>1</Text>
+          <TouchableOpacity>
             <Image source={require('./img/adicionar.png')}/>
+          </TouchableOpacity>  
+            
           </View> 
       </View>
+      
 
       <View style={{flexDirection:'row', marginTop:15}}>
             <Image source={require('../Home/img/hamb-1.png')} style={{ width:100, height:100, borderRadius:15, marginLeft:10}}/>
@@ -328,11 +334,11 @@ export default function Home() {
         </View>
 
 
-      <View style={{backgroundColor:'#2aee99', flexDirection:'row', alignItems:'center'}}>
-        <Text style={{marginLeft:15}}>Deseja editar o local de entrega?</Text>
-        <TouchableOpacity>
-          <View style={{flexDirection:'row', backgroundColor:'#ff3f5b', width:97, height:36, justifyContent:'space-between', alignItems:'center'}}>
-            <Text>Editar</Text>
+      <View style={{flexDirection:'row', alignItems:'center', marginVertical:8}}>
+        <Text style={{marginLeft:15, fontSize:17, fontWeight:"bold", color:'#000'}}>Deseja editar o local de entrega?</Text>
+        <TouchableOpacity onPress={abrirEndereco}>
+          <View style={{flexDirection:'row', backgroundColor:'#ff3f5b', width:97, height:45, justifyContent:'space-between', alignItems:'center', paddingHorizontal:10, marginLeft:34, borderRadius:15}}>
+            <Text style={{fontSize:16, color:'#fff'}}>Editar</Text>
             <Image source={require('../Home/img/entrega.png')}/>
           </View>
         </TouchableOpacity>
@@ -341,9 +347,12 @@ export default function Home() {
         
         <View style={styles.sacola}>
           <View>
-        <Text style={{ marginLeft: 15, marginTop: 13, fontSize: 15 }}>Total sem a entrega</Text>
+        <Text style={{ marginLeft: 15, marginTop: 13, fontSize: 15 }}>Total com a entrega</Text>
         <Text style={{ marginLeft: 15, fontSize: 22, fontWeight: 'bold', color: '#000' }}>R$ 10,00</Text>
           </View>
+          <View style={styles.sacolaButton}>
+              <Text style={{color:'#fff', fontSize:19}}>Pagar</Text>
+            </View>
         </View>
 
       </Modal>
@@ -473,8 +482,9 @@ const styles = StyleSheet.create({
     borderColor:'#a6a6a6',
     flexDirection:'row',
     justifyContent:'space-between'
+
   },
   sacolaButton:{
-    alignSelf:'center', marginRight:20, backgroundColor:'#ff3f5b', width:130, height:'60%', marginTop:15, borderRadius:15, alignItems:'center', justifyContent:'center'
+ marginRight:20, backgroundColor:'#ff3f5b', width:130, height:'60%', marginTop:15, borderRadius:15, alignItems:'center', justifyContent:'center', 
   }
 });
