@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { View, Text, Image, StyleSheet, ScrollView, StatusBar, FlatList, TouchableOpacity, Modal, SafeAreaView, TextInput, TouchableHighlight } from "react-native";
 import { database } from "../../firebaseConfig"; 
 
+interface Adicional {
+  nome: string;
+  preco: string;
+}
 
 interface Item {
   id: string;
@@ -9,6 +13,7 @@ interface Item {
   descricao: string;
   preco: string;
   nome: string;
+  adicionais?: Adicional[];
 }
 
 interface Categoria {
@@ -23,6 +28,7 @@ interface categoriasData {
   itens: Item[];
   timestamp: number;
 }
+
 export default function Home() {
   const [janelaendereco, setJanelaendereco] = useState(false);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -31,8 +37,55 @@ export default function Home() {
   const [categoriaSelecionadaIndex, setCategoriaSelecionadaIndex] = useState<number>(0);
   const [verSacola, setVerSacola] = useState(false)
   const scrollRef = useRef<ScrollView>(null);
+  const [adicionaisSelecionados, setAdicionaisSelecionados] = useState<{ [key: string]: number }>({});
+
+  const totalAdicionaisSelecionados = () => {
+    return Object.values(adicionaisSelecionados).reduce((a, b) => a + b, 0);
+  };
+
+  const incrementarAdicional = (nome: string) => {
+    setAdicionaisSelecionados((prev) => {
+      const totalSelecionados = totalAdicionaisSelecionados();
+      if (totalSelecionados < 3 || (prev[nome] && totalSelecionados < 4)) {
+        return { ...prev, [nome]: (prev[nome] || 0) + 1 };
+      }
+      return prev;
+    });
+  };
+
+  const decrementarAdicional = (nome: string) => {
+    setAdicionaisSelecionados((prev) => {
+      const updatedAdicionais = { ...prev };
+      if (updatedAdicionais[nome] > 0) {
+        updatedAdicionais[nome] -= 1;
+        if (updatedAdicionais[nome] === 0) {
+          delete updatedAdicionais[nome];
+        }
+      }
+      return updatedAdicionais;
+    });
+  };
 
   
+
+  function calcularTotalAdicionais(adicionaisSelecionados: { [x: string]: any; }, adicionais: any[] | undefined) {
+    let total = 0;
+    if (adicionais) {
+      for (let nome in adicionaisSelecionados) {
+        let quantidade = adicionaisSelecionados[nome];
+        let adicional = adicionais.find(adicional => adicional.nome === nome);
+        let precoAdicional = adicional ? parseFloat(adicional.preco) : 0;
+        if (!isNaN(precoAdicional)) {
+          total += quantidade * precoAdicional;
+        }
+      }
+    }
+    return total;
+  }
+
+  
+  
+
   const abrirEndereco = () => {
     setJanelaendereco(true);
   };
@@ -41,7 +94,6 @@ export default function Home() {
     setJanelaendereco(false);
   };
 
-  //*função para abrir sacola
   const abrirSacola = () => {
     setVerSacola(true)
   }
@@ -49,7 +101,7 @@ export default function Home() {
   const fecharSacola = () => {
     setVerSacola(false)
   }
-//*
+
   useEffect(() => {
     const ref = database().ref('categorias');
 
@@ -90,6 +142,8 @@ export default function Home() {
     setCategoriaSelecionadaIndex(index); // Atualiza o estado para indicar a categoria selecionada
   };
 
+
+
   const renderCategoriaMenu = () => (
     <ScrollView horizontal style={styles.menu} onScroll={handleScroll}>
       {categorias.map((categoria, index) => (
@@ -116,10 +170,51 @@ export default function Home() {
     </TouchableOpacity>
   );
 
-  
+  const renderAdicionais = (adicionais: Adicional[]) => (
+    <View style={styles.adicionaisContainer}>
+      <View style={{backgroundColor:'#73707944',marginVertical:15}}>
+        <Text style={{fontSize:25, marginLeft:15}}>Adicionais</Text>
+        <Text style={{marginLeft:15, marginVertical:5, fontSize:15}}>Escolha até 3 opções</Text>
+      </View>
+      {adicionais.map((adicional, index) => (
+        <View key={index} style={styles.adicional}>
+          <View style={styles.adicionalTextContainer}>
+            <Text style={styles.adicionalNome}>{adicional.nome}</Text>
+            <Text style={styles.adicionalPreco}>+ R$ {adicional.preco}</Text>
+          </View>
+         
+          <TouchableOpacity 
+            style={[
+              styles.adicionarButton,
+              { opacity: (adicionaisSelecionados[adicional.nome] || 0) > 0 ? 1 : 0.5 }
+            ]}
+            onPress={() => decrementarAdicional(adicional.nome)}
+            disabled={(adicionaisSelecionados[adicional.nome] || 0) === 0}
+          >
+            <Text style={styles.adicionarButtonText}>-</Text>
+          </TouchableOpacity>
+          <Text style={{fontSize:20, padding:10, color:'#000', fontWeight:'bold'}}>{adicionaisSelecionados[adicional.nome] || 0}</Text>
+          <TouchableOpacity 
+            style={[
+              styles.adicionarButton,
+              { opacity: totalAdicionaisSelecionados() >= 3 ? 0.5 : 1 }
+            ]}
+            onPress={() => {
+              if (totalAdicionaisSelecionados() < 3 || adicionaisSelecionados[adicional.nome]) {
+                incrementarAdicional(adicional.nome);
+              }
+            }}
+            disabled={totalAdicionaisSelecionados() >= 3}
+          >
+            <Text style={styles.adicionarButtonText}>+</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+    </View>
+  );
 
   
-
+  
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar
@@ -243,13 +338,48 @@ export default function Home() {
         animationType="slide"
       >
         {itemSelecionado && (
-          <ScrollView>
+        <View style={{flex:1}}>
+            <ScrollView style={{flex:1}}>
             <Image source={{uri: itemSelecionado.imagemUrl}} style={styles.modalImagem}/>
             <Text style={styles.modalNome}>{itemSelecionado.nome}</Text>
             <Text style={styles.modaldescricao}>{itemSelecionado.descricao}</Text>
             <Text style={styles.modalPreco}>R${itemSelecionado.preco}</Text>
+            {itemSelecionado.adicionais && renderAdicionais(itemSelecionado.adicionais)}
+              
           </ScrollView>
+          
+          <View style={styles.carrinho}>
+          <View style={{flexDirection:'row',alignSelf:'center',margin:20,alignItems:'center'}}>
+        <TouchableOpacity>
+            <Text style={styles.buttonQutd}>-</Text>
+          </TouchableOpacity>
+          <Text style={{fontSize:18, padding:10, color:'#000', fontWeight:'bold'}}>1</Text>
+          <TouchableOpacity>
+            <Text style={styles.buttonQutd}>+</Text>
+          </TouchableOpacity>
+        </View>
+
+      
+        <TouchableOpacity>
+  <View style={styles.adicionarcarrinho}>
+    <Text style={{color:'#fff', fontSize:19, marginLeft:10}}>Adicionar</Text>
+    <Text style={{color:'#fff', fontSize:19, marginRight:10, fontWeight:'bold'}}>
+  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(itemSelecionado.preco.replace(',', '.')) + calcularTotalAdicionais(adicionaisSelecionados, itemSelecionado.adicionais)).replace('.', ',')}
+</Text>
+
+
+
+  </View>
+</TouchableOpacity>
+            
+      </View>
+
+        </View>
+          
+        
         )}
+
+        
       </Modal>
 
       <View style={styles.sacola}>
@@ -360,6 +490,8 @@ export default function Home() {
   );
 }
 
+
+
 const styles = StyleSheet.create({
   container:{
     flex:1,
@@ -404,6 +536,26 @@ const styles = StyleSheet.create({
     color:'#000',
     paddingLeft:15,
     paddingTop:7
+  },
+  carrinho:{
+    
+    width:'100%',
+    height:'10%',
+    borderTopWidth:1,
+    borderColor:'#a6a6a6',
+    flexDirection:'row',
+    justifyContent:'space-between',
+  },
+  adicionarcarrinho:{
+    marginRight:20, 
+    backgroundColor:'#ff3f5b', 
+    width:200, 
+    height:'60%', 
+    marginTop:15, 
+    borderRadius:15, 
+    alignItems:'center', 
+    justifyContent:'space-between',
+    flexDirection:'row'
   },
   menu: {
     flexDirection: 'row',
@@ -473,7 +625,8 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginLeft:15,
-    color:'#000'
+    color:'#000',
+    marginTop:10
   },
   sacola:{
     width:'100%',
@@ -485,6 +638,72 @@ const styles = StyleSheet.create({
 
   },
   sacolaButton:{
- marginRight:20, backgroundColor:'#ff3f5b', width:130, height:'60%', marginTop:15, borderRadius:15, alignItems:'center', justifyContent:'center', 
-  }
+    marginRight:20, 
+    backgroundColor:'#ff3f5b', 
+    width:130, 
+    height:'60%', 
+    marginTop:15, 
+    borderRadius:15, 
+    alignItems:'center', 
+    justifyContent:'center', 
+  },
+  adicionaisContainer: {
+    marginTop: 10,
+  },
+  adicional: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+    padding: 10,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    borderColor:'#ccc',
+    borderWidth:1
+  },
+  adicionalTextContainer: {
+    flexDirection: "column",
+    marginRight: 10,
+    flex: 1,
+  },
+  adicionalNome: {
+    fontSize: 16,
+    color: '#000',
+  },
+  adicionalPreco: {
+    fontSize: 16,
+    color: '#000',
+    marginTop: 5,
+  },
+  buttonQutd:{
+    backgroundColor: "#ff3f5b",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    
+  },
+  adicionarButton: {
+    backgroundColor: "#ff3f5b",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    alignSelf: 'center',  
+  },
+  adicionarButtonText: {
+    color: "#fff",
+    fontSize: 18,
+  },
+  closeButton: {
+    backgroundColor: "#ff3f5b",
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  closeButtonText: {
+    color: "#fff",
+    fontSize: 16,
+  },
+  disabledButton: {
+    backgroundColor: "#ccc", // Altere para a cor desejada quando o botão estiver desativado
+  },
 });
